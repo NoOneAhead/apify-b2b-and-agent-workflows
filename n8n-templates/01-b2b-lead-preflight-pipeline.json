@@ -1,45 +1,112 @@
 {
-  "name": "Zero-Bounce B2B Lead Qualification & AI-Readiness Pipeline (5-in-1 Pre-Flight)",
+  "name": "Zero-Bounce B2B Lead Qualification, Trust Center & AI-Readiness Pipeline (Apify + Google Sheets + Slack)",
   "nodes": [
     {
       "parameters": {
-        "content": "## Zero-Bounce B2B Lead Pre-Flight Pipeline\n\nReplaces 5 separate enrichment nodes (MX/SPF/DMARC/DKIM, DNSBL, SSL, Tech Stack, llms.txt & Vanta/Drata Trust Center) with **1 fast Pay-Per-Event Apify Actor call** (`lu-tools/b2b-domain-preflight-fusion`).\n\n### Setup (60 seconds)\n1. Create a free Apify account and copy your Personal API Token.\n2. Open the **5-in-1 B2B Domain Pre-Flight** HTTP node and set Header Auth:\n   - Name: `Authorization`\n   - Value: `Bearer YOUR_APIFY_TOKEN`\n3. Replace the sample domains with your Google Sheets, Airtable, or Webhook input.",
-        "height": 290,
-        "width": 420,
+        "content": "## 1. Trigger & Lead Input\n\nRuns on a **daily schedule** or manually for one-off lead list cleaning.\n\n- Replace **Sample Lead List** with a Google Sheets, HubSpot, Airtable, or Webhook node.\n- **Prepare Domain Batch** automatically extracts clean domains from emails/URLs, deduplicates them, and formats the batch payload.",
+        "height": 230,
+        "width": 540,
         "color": 4
       },
-      "id": "sticky-setup",
-      "name": "Setup Instructions",
+      "id": "note-stage-1",
+      "name": "Note: Stage 1 - Input",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [180, 40]
+      "position": [160, 60]
+    },
+    {
+      "parameters": {
+        "content": "## 2. 5-in-1 Pre-Flight Enrichment (Apify)\n\nCalls **`lu-tools/b2b-domain-preflight-fusion`** in 1 fast, zero-proxy request to audit:\n1. MX / Recursive SPF (10-lookup check) / DMARC / DKIM\n2. Public DNSBL blocklist reputation\n3. TLS/SSL expiry & security headers\n4. Tech stack & parked-domain detection\n5. `/llms.txt`, AI crawler policies & Vanta/Drata Trust Centers\n\n### Setup (60s)\nOpen **5-in-1 B2B Domain Pre-Flight** and configure Header Auth:\n- Name: `Authorization`\n- Value: `Bearer YOUR_APIFY_TOKEN`",
+        "height": 280,
+        "width": 460,
+        "color": 5
+      },
+      "id": "note-stage-2",
+      "name": "Note: Stage 2 - Apify Audit",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [760, 40]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Smart 3-Way Verdict Routing\n\nRoutes every audited domain automatically:\n- **READY**: Enterprise-ready domains -> sync to CRM sheet + notify Slack\n- **CAUTION**: Missing DMARC / SPF >10 lookups / freemail -> flag for manual review\n- **REJECT**: Disposable, parked, or DNSBL-listed -> export to suppression list",
+        "height": 230,
+        "width": 520,
+        "color": 3
+      },
+      "id": "note-stage-3",
+      "name": "Note: Stage 3 - Routing",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1280, 60]
+    },
+    {
+      "parameters": {
+        "content": "## 4. CRM Sync, Alerts & Suppression\n\nConnect your **Google Sheets** and **Slack** credentials on the downstream nodes.\n\n- Qualified leads include `outreachTier` (`VIP_ENTERPRISE` when a Trust Center or `llms.txt` is detected).\n- Rejected leads are formatted for your outbound Do-Not-Email suppression list.",
+        "height": 230,
+        "width": 520,
+        "color": 6
+      },
+      "id": "note-stage-4",
+      "name": "Note: Stage 4 - Actions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1860, 60]
     },
     {
       "parameters": {},
-      "id": "trigger-manual",
-      "name": "Manual Trigger",
+      "id": "manual-trigger",
+      "name": "Manual Test Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [200, 380]
+      "position": [180, 340]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "daily-schedule",
+      "name": "Daily Lead Hygiene Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [180, 520]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "domains-list",
-              "name": "domains",
-              "value": "={{ [\"stripe.com\", \"linear.app\", \"apify.com\", \"gmail.com\", \"mailinator.com\"] }}",
+              "id": "sample-leads",
+              "name": "rawInputs",
+              "value": "={{ [\"ops@stripe.com\", \"https://linear.app/pricing\", \"apify.com\", \"test@gmail.com\", \"spam@mailinator.com\"] }}",
               "type": "array"
             }
           ]
         }
       },
-      "id": "set-sample-leads",
-      "name": "Input Lead Domains / Emails",
+      "id": "sample-leads-set",
+      "name": "Sample Lead List (Replace with CRM)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [440, 380]
+      "position": [400, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawList = $input.first().json.rawInputs || [];\nconst cleaned = [...new Set(\n  rawList\n    .map((v) => String(v || '').trim())\n    .filter(Boolean)\n)];\n\nif (cleaned.length === 0) {\n  return [];\n}\n\nreturn [{ json: { domains: cleaned, batchSize: cleaned.length } }];"
+      },
+      "id": "prepare-batch",
+      "name": "Deduplicate & Prepare Domain Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 420]
     },
     {
       "parameters": {
@@ -55,50 +122,305 @@
         }
       },
       "id": "apify-preflight-call",
-      "name": "5-in-1 B2B Domain Pre-Flight",
+      "name": "5-in-1 B2B Domain Pre-Flight (Apify)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [700, 380]
+      "position": [860, 420]
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
+        "jsCode": "return $input.all().map(({ json }) => {\n  const isVip = json.verdict === 'READY' && (json.hasTrustCenter || json.leadQualityScore >= 90);\n  return {\n    json: {\n      domain: json.domain,\n      verdict: json.verdict,\n      grade: json.grade,\n      leadQualityScore: json.leadQualityScore,\n      outreachTier: isVip ? 'VIP_ENTERPRISE' : json.verdict === 'READY' ? 'STANDARD_B2B' : 'HOLD_OR_SUPPRESS',\n      emailProvider: json.emailProvider,\n      dmarcPolicy: json.dmarcPolicy,\n      spfLookupCount: json.spfLookupCount,\n      hasTrustCenter: Boolean(json.hasTrustCenter),\n      trustCenterProvider: json.trustCenterProvider || 'None',\n      hasLlmsTxt: Boolean(json.hasLlmsTxt),\n      techStack: Array.isArray(json.techStack) ? json.techStack.join(', ') : '',\n      redFlags: Array.isArray(json.redFlags) ? json.redFlags.join(', ') : '',\n      auditedAt: json.auditedAt\n    }\n  };\n});"
+      },
+      "id": "enrich-crm-fields",
+      "name": "Format CRM Fields & Assign Tier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 420]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
             {
-              "id": "verdict-ready",
-              "leftValue": "={{ $json.verdict }}",
-              "rightValue": "READY",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "READY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "READY"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "CAUTION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CAUTION"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "REJECT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REJECT"
             }
-          ],
-          "combinator": "and"
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-verdict",
+      "name": "Route by Verdict (READY / CAUTION / REJECT)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1360, 420]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Qualified_Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "sheets-ready",
+      "name": "Save Qualified Leads to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1680, 280]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "={{ `*New Qualified B2B Lead (${$json.outreachTier})*\\n• Domain: ${$json.domain}\\n• Score: ${$json.leadQualityScore}/100 (Grade ${$json.grade})\\n• Email: ${$json.emailProvider} (DMARC: ${$json.dmarcPolicy})\\n• Trust Center: ${$json.trustCenterProvider} | llms.txt: ${$json.hasLlmsTxt}\\n• Stack: ${$json.techStack || 'N/A'}` }}",
+        "otherOptions": {}
+      },
+      "id": "slack-notify-ready",
+      "name": "Notify Sales Channel in Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1960, 280]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Caution_Review",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "sheets-caution",
+      "name": "Log Caution Leads for Review",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1680, 460]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "suppressed-domain",
+              "name": "suppressedDomain",
+              "value": "={{ $json.domain }}",
+              "type": "string"
+            },
+            {
+              "id": "suppression-reason",
+              "name": "suppressionReason",
+              "value": "={{ $json.redFlags || 'Low pre-flight quality score' }}",
+              "type": "string"
+            },
+            {
+              "id": "suppressed-at",
+              "name": "suppressedAt",
+              "value": "={{ $json.auditedAt }}",
+              "type": "string"
+            }
+          ]
         }
       },
-      "id": "route-by-verdict",
-      "name": "Filter Qualified Leads (READY)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [960, 380]
+      "id": "prepare-suppression",
+      "name": "Prepare Do-Not-Email Suppression Entry",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1680, 640]
     }
   ],
   "connections": {
-    "Manual Trigger": {
-      "main": [[{ "node": "Input Lead Domains / Emails", "type": "main", "index": 0 }]]
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sample Lead List (Replace with CRM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Input Lead Domains / Emails": {
-      "main": [[{ "node": "5-in-1 B2B Domain Pre-Flight", "type": "main", "index": 0 }]]
+    "Daily Lead Hygiene Schedule": {
+      "main": [
+        [
+          {
+            "node": "Sample Lead List (Replace with CRM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "5-in-1 B2B Domain Pre-Flight": {
-      "main": [[{ "node": "Filter Qualified Leads (READY)", "type": "main", "index": 0 }]]
+    "Sample Lead List (Replace with CRM)": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate & Prepare Domain Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate & Prepare Domain Batch": {
+      "main": [
+        [
+          {
+            "node": "5-in-1 B2B Domain Pre-Flight (Apify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5-in-1 B2B Domain Pre-Flight (Apify)": {
+      "main": [
+        [
+          {
+            "node": "Format CRM Fields & Assign Tier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format CRM Fields & Assign Tier": {
+      "main": [
+        [
+          {
+            "node": "Route by Verdict (READY / CAUTION / REJECT)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Verdict (READY / CAUTION / REJECT)": {
+      "main": [
+        [
+          {
+            "node": "Save Qualified Leads to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Caution Leads for Review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Do-Not-Email Suppression Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Qualified Leads to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Notify Sales Channel in Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }
