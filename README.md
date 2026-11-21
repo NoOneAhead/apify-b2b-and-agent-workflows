@@ -1,12 +1,12 @@
 # Lu Tools — Ready-to-Use n8n Workflows, MCP Configs & API Starters
 
-Production-ready automation templates and Model Context Protocol (MCP) snippets powered by lightweight, zero-proxy **Pay-Per-Event** Apify Actors from **[lu-tools](https://apify.com/lu-tools)**:
+Production-ready automation templates and Model Context Protocol (MCP) snippets powered by lightweight, zero-proxy **Pay-Per-Event** Apify Actors from **[lu-tools](https://apify.com/lu-tools?fpr=hs8o1j)**:
 
 | Tool | What It Replaces | Pricing (PPE) | Apify Store |
 | :--- | :--- | :--- | :--- |
-| **B2B Domain Pre-Flight & AI-Readiness Fusion** | 5 separate DNS / MX / SPF / DMARC / SSL / Tech Stack / `llms.txt` / Trust Center nodes | **$0.008 / domain** ($8 per 1k) | [Open on Apify](https://apify.com/lu-tools/b2b-domain-preflight-fusion) |
-| **SaaS Pricing, OpenAPI & Changelog Semantic Diff Monitor** | Noisy HTML diff monitors — outputs only `BREAKING / MAJOR / MINOR` semantic changes | **$0.003 / check** + $0.025 on real diff | [Open on Apify](https://apify.com/lu-tools/saas-pricing-api-diff-monitor) |
-| **OSS Dependency & Repo Due-Diligence Auditor (MCP)** | Manual CVE + GPL/AGPL copyleft + stale-package checks for Cursor / Claude Code & CI/CD | **$0.015 / audit** ($15 per 1k) | [Open on Apify](https://apify.com/lu-tools/oss-dependency-due-diligence-mcp) |
+| **B2B Domain Pre-Flight & AI-Readiness Fusion** | 5 separate DNS / MX / SPF / DMARC / SSL / Tech Stack / `llms.txt` / Trust Center nodes | **$0.008 / domain** ($8 per 1k) | [Open on Apify](https://apify.com/lu-tools/b2b-domain-preflight-fusion?fpr=hs8o1j) |
+| **SaaS Pricing, OpenAPI & Changelog Semantic Diff Monitor** | Noisy HTML diff monitors — outputs only `BREAKING / MAJOR / MINOR` semantic changes | **$0.003 / check** + $0.025 on real diff | [Open on Apify](https://apify.com/lu-tools/saas-pricing-api-diff-monitor?fpr=hs8o1j) |
+| **OSS Dependency & Repo Due-Diligence Auditor (MCP)** | Manual CVE + GPL/AGPL copyleft + stale-package checks for Cursor / Claude Code & CI/CD | **$0.015 / audit** ($15 per 1k) | [Open on Apify](https://apify.com/lu-tools/oss-dependency-due-diligence-mcp?fpr=hs8o1j) |
 
 ---
 
