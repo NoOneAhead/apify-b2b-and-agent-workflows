@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "lu-tools-apify": {
+      "url": "https://mcp.apify.com/?actors=lu-tools/b2b-domain-preflight-fusion,lu-tools/saas-pricing-api-diff-monitor,lu-tools/oss-dependency-due-diligence-mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_APIFY_TOKEN"
+      }
+    }
+  }
+}

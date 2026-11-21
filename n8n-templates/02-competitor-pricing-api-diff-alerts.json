@@ -1,0 +1,77 @@
+{
+  "name": "Daily Competitor Pricing & OpenAPI Breaking-Change Alerts (Noise-Free Semantic Diff)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Noise-Free Competitor Pricing & API Diff Monitor\n\nRuns daily via **Apify (`lu-tools/saas-pricing-api-diff-monitor`)** using persistent Key-Value snapshots.\n\n- Ignores CSS/banner/timestamp noise\n- Flags price changes & removed OpenAPI endpoints as **`BREAKING`**\n- Outputs nothing when `UNCHANGED` (`onlyPushChanges: true`)\n\n### Setup (60 seconds)\n1. Set Header Auth on **Run Semantic Diff Monitor** (`Authorization: Bearer YOUR_APIFY_TOKEN`).\n2. Put your competitors' pricing URLs, OpenAPI JSON URLs, or RSS changelogs into `targets`.\n3. Connect the **True** branch to Slack, Email, or Notion.",
+        "height": 300,
+        "width": 440,
+        "color": 5
+      },
+      "id": "sticky-diff-setup",
+      "name": "Setup Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [180, 40]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "daysInterval": 1 }]
+        }
+      },
+      "id": "schedule-daily",
+      "name": "Daily Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/lu-tools~saas-pricing-api-diff-monitor/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"targets\": [\n    { \"url\": \"https://apify.com/pricing\", \"monitorType\": \"pricing\", \"label\": \"Apify Pricing\" },\n    { \"url\": \"https://petstore3.swagger.io/api/v3/openapi.json\", \"monitorType\": \"openapi\", \"label\": \"Partner OpenAPI\" },\n    { \"url\": \"https://linear.app/changelog\", \"monitorType\": \"changelog\", \"label\": \"Linear Changelog\" }\n  ],\n  \"stateStoreName\": \"my-competitor-diff-store\",\n  \"onlyPushChanges\": true,\n  \"compactMode\": true\n}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "apify-diff-run",
+      "name": "Run Semantic Diff Monitor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "is-changed",
+              "leftValue": "={{ $json.changed }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-real-changes",
+      "name": "Only Real Semantic Changes",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [780, 400]
+    }
+  ],
+  "connections": {
+    "Daily Schedule Trigger": {
+      "main": [[{ "node": "Run Semantic Diff Monitor", "type": "main", "index": 0 }]]
+    },
+    "Run Semantic Diff Monitor": {
+      "main": [[{ "node": "Only Real Semantic Changes", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

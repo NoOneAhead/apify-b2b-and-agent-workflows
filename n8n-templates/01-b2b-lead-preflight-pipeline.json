@@ -1,0 +1,104 @@
+{
+  "name": "Zero-Bounce B2B Lead Qualification & AI-Readiness Pipeline (5-in-1 Pre-Flight)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Zero-Bounce B2B Lead Pre-Flight Pipeline\n\nReplaces 5 separate enrichment nodes (MX/SPF/DMARC/DKIM, DNSBL, SSL, Tech Stack, llms.txt & Vanta/Drata Trust Center) with **1 fast Pay-Per-Event Apify Actor call** (`lu-tools/b2b-domain-preflight-fusion`).\n\n### Setup (60 seconds)\n1. Create a free Apify account and copy your Personal API Token.\n2. Open the **5-in-1 B2B Domain Pre-Flight** HTTP node and set Header Auth:\n   - Name: `Authorization`\n   - Value: `Bearer YOUR_APIFY_TOKEN`\n3. Replace the sample domains with your Google Sheets, Airtable, or Webhook input.",
+        "height": 290,
+        "width": 420,
+        "color": 4
+      },
+      "id": "sticky-setup",
+      "name": "Setup Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [180, 40]
+    },
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 380]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "domains-list",
+              "name": "domains",
+              "value": "={{ [\"stripe.com\", \"linear.app\", \"apify.com\", \"gmail.com\", \"mailinator.com\"] }}",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "set-sample-leads",
+      "name": "Input Lead Domains / Emails",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/lu-tools~b2b-domain-preflight-fusion/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"domains\": {{ JSON.stringify($json.domains) }},\n  \"includeAiReadiness\": true,\n  \"includeTrustCenterProbe\": true,\n  \"includeDnsbl\": true,\n  \"compactMode\": true,\n  \"maxConcurrency\": 5\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "apify-preflight-call",
+      "name": "5-in-1 B2B Domain Pre-Flight",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "verdict-ready",
+              "leftValue": "={{ $json.verdict }}",
+              "rightValue": "READY",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "route-by-verdict",
+      "name": "Filter Qualified Leads (READY)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 380]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Input Lead Domains / Emails", "type": "main", "index": 0 }]]
+    },
+    "Input Lead Domains / Emails": {
+      "main": [[{ "node": "5-in-1 B2B Domain Pre-Flight", "type": "main", "index": 0 }]]
+    },
+    "5-in-1 B2B Domain Pre-Flight": {
+      "main": [[{ "node": "Filter Qualified Leads (READY)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
